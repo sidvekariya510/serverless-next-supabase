@@ -33,15 +33,33 @@ export function LoginForm({
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) throw error;
-      // Update this route to redirect to an authenticated route. The user already has an active session.
+      
+      if (error) {
+        // Handle specific error cases
+        if (error.message.includes("Email not confirmed")) {
+          setError("Please verify your email before logging in. Check your inbox for a verification link.");
+        } else if (error.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password. Please try again.");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      // Check if user is confirmed
+      if (data.user && !data.user.email_confirmed_at) {
+        setError("Please verify your email before logging in. Check your inbox for a verification link.");
+        return;
+      }
+
+      // Successfully logged in, redirect to protected area
       router.push("/protected");
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      setError(error instanceof Error ? error.message : "An error occurred during login");
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +106,22 @@ export function LoginForm({
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              {error && (
+                <div className="space-y-2">
+                  <p className="text-sm text-red-500">{error}</p>
+                  {error.includes("verify your email") && (
+                    <div className="text-xs text-muted-foreground">
+                      <p>Need to verify your email?</p>
+                      <Link 
+                        href={`/auth/verify-otp?email=${encodeURIComponent(email)}`}
+                        className="text-primary underline underline-offset-4 hover:text-primary/80"
+                      >
+                        Click here to verify
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Login"}
               </Button>

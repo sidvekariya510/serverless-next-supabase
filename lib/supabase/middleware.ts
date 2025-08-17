@@ -39,17 +39,24 @@ export async function updateSession(request: NextRequest) {
   // with the Supabase client, your users may be randomly logged out.
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
+  
+  // Check if user exists and is authenticated
   if (
     request.nextUrl.pathname !== "/" &&
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
     !request.nextUrl.pathname.startsWith("/auth")
   ) {
-    // no user, potentially respond by redirecting the user to the login page
+    // No user, redirect to login page
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
     return NextResponse.redirect(url);
   } else if (user && request.nextUrl.pathname.startsWith("/auth")) {
+    // User is authenticated but trying to access auth pages, redirect to protected area
+    // Exception: allow access to verify-otp page for email confirmation
+    if (request.nextUrl.pathname.startsWith("/auth/verify-otp")) {
+      return supabaseResponse;
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/protected";
     return NextResponse.redirect(url);

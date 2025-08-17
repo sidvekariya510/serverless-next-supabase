@@ -44,11 +44,13 @@ export function SignUpForm({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/protected`,
+          // emailRedirectTo: `${window.location.origin}/protected`,
+          emailRedirectTo: undefined,
         },
       });
       if (error) throw error;
-      router.push("/auth/sign-up-success");
+      // router.push("/auth/sign-up-success");
+      router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
